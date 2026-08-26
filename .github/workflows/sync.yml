@@ -1,0 +1,46 @@
+name: Sync FRED
+
+on:
+  schedule:
+    # 12:15 UTC = 07:15 US Central. Government releases land in US morning
+    # hours, so this picks up the previous day and catches most 8:30 ET
+    # releases on the next run (Section 8.6).
+    - cron: "15 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Until the app is deployed somewhere there is no endpoint to call, and a
+      # daily red run for a thing nobody has set up yet is noise, not a signal.
+      - name: Check that a deployment is configured
+        id: config
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing to sync: set the APP_URL and CRON_SECRET repository" \
+                 "secrets once Dr. Dash is deployed, and this job will start" \
+                 "refreshing the catalog every morning."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger the sync endpoint
+        if: steps.config.outputs.configured == 'true'
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/sync.json -w '%{http_code}' \
+            -X POST "$APP_URL/api/v1/admin/sync" \
+            -H "content-type: application/json" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            -d '{"slugs": null, "full": false}')
+          cat /tmp/sync.json
+          test "$code" = "202"

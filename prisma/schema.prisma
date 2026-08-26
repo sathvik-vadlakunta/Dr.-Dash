@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Identity ----------
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  emailNormalized String  @unique            // lowercased, trimmed
+  name           String
+  passwordHash   String
+  role           UserRole @default(STUDENT)
+  orgId          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  org            Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  sessions       Session[]
+  categories     Category[]
+  series         Series[]
+  dashboards     Dashboard[]
+  attempts       LessonAttempt[]
+  enrollments    Enrollment[]
+  coursesTaught  Course[]        @relation("CourseInstructor")
+  seriesRequests SeriesRequest[]
+  importJobs     ImportJob[]
+
+  @@index([orgId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique             // sha256 of the opaque cookie value
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  // Section 11.4: a signup carrying this code may create an INSTRUCTOR account
+  // in production without an admin doing it by hand.
+  instructorCode String? @unique
+  createdAt DateTime @default(now())
+
+  users     User[]
+  series    Series[]
+  categories Category[]
+}
+
+// ---------- Catalog ----------
+
+enum SeriesSource {
+  FRED
+  CONSTRUCTED
+  USER
+  ORG
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum SeriesKind {
+  LEVEL_CURRENCY   // dollars of some scale
+  LEVEL_COUNT      // persons, units, houses
+  INDEX            // index number, base period = 100
+  RATE_PERCENT     // already a percent or rate
+  RATIO            // unitless ratio
+  FLAG             // 0/1 indicator (USREC)
+}
+
+enum Aggregation {
+  AVG
+  SUM
+  EOP              // end of period
+}
+
+model Series {
+  id                String       @id @default(cuid())
+  slug              String       @unique       // "GDPC1", "DD_MISERY", "usr_a1b2c3"
+  source            SeriesSource
+  fredId            String?      @unique
+  title             String                     // full display title
+  shortLabel        String                     // <= 28 chars, used in legends and chips
+  description       String       @db.Text
+  units             String                     // "Billions of Dollars"
+  unitsShort        String                     // "Bil. $"
+  unitMultiplier    Float        @default(1)   // multiply stored value by this for base units
+  frequency         Frequency
+  seasonalAdjustment String      @default("NSA") // "SA" | "NSA" | "SAAR"
+  kind              SeriesKind
+  isNominal         Boolean      @default(false)
+  isRealAlready     Boolean      @default(false)
+  canReal           Boolean      @default(false)
+  canPerCapita      Boolean      @default(false)
+  canGrowth         Boolean      @default(true)
+  canBeDenominator  Boolean      @default(true)
+  defaultDeflator   String?                    // slug of a deflator series
+  defaultPopulation String?                    // slug of a population series
+  aggregation       Aggregation  @default(AVG)
+  sourceName        String       @default("FRED")
+  sourceUrl         String?
+  notes             String?      @db.Text
+  popularity        Int          @default(0)
+  isPublic          Boolean      @default(true)
+  ownerId           String?
+  orgId             String?
+  observationStart  DateTime?
+  observationEnd    DateTime?
+  fredLastUpdated   DateTime?
+  lastSyncedAt      DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  owner             User?           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  org               Organization?   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  observations      Observation[]
+  categoryLinks     CategorySeries[]
+
+  @@index([source])
+  @@index([ownerId])
+  @@index([orgId])
+  @@index([frequency])
+  @@index([popularity])
+}
+
+model Observation {
+  seriesId String
+  date     DateTime  @db.Date    // period START date, always
+  value    Float?                // null means missing, never 0-substituted
+
+  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, date])
+  @@index([seriesId, date])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  parentId  String?
+  ownerId   String?              // null => system category, visible to everyone
+  orgId     String?
+  sortOrder Int      @default(0)
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[] @relation("CategoryTree")
+  owner     User?         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  org       Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  seriesLinks CategorySeries[]
+
+  @@unique([ownerId, slug])
+  @@index([parentId])
+}
+
+model CategorySeries {
+  categoryId String
+  seriesId   String
+  sortOrder  Int    @default(0)
+
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  series     Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, seriesId])
+  @@index([seriesId])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SeriesRequest {
+  id         String        @id @default(cuid())
+  userId     String
+  fredId     String
+  note       String?       @db.Text
+  status     RequestStatus @default(PENDING)
+  decidedAt  DateTime?
+  decidedBy  String?
+  rejectionReason String?
+  createdAt  DateTime      @default(now())
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+enum ImportStatus {
+  PARSED
+  COMMITTED
+  FAILED
+}
+
+model ImportJob {
+  id          String       @id @default(cuid())
+  userId      String
+  filename    String
+  status      ImportStatus @default(PARSED)
+  rowCount    Int          @default(0)
+  issuesJson  Json         @default("[]")
+  previewJson Json         @default("[]")
+  payloadJson Json         @default("[]")   // normalized {date,value}[] awaiting commit
+  createdAt   DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------- Dashboards ----------
+
+model Dashboard {
+  id          String   @id @default(cuid())
+  ownerId     String
+  title       String
+  description String?  @db.Text
+  stateJson   Json                       // DashboardState, Section 12.3
+  publicToken String?  @unique           // 22-char nanoid-style, set on publish
+  isPublic    Boolean  @default(false)
+  allowEmbed  Boolean  @default(false)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+// ---------- Lessons ----------
+
+model Lesson {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  summary          String   @db.Text
+  level            String   @default("INTRO")   // INTRO | INTERMEDIATE
+  estimatedMinutes Int      @default(20)
+  version          Int      @default(1)
+  maxScore         Int
+  contentJson      Json                          // LessonContent, Section 19.2
+  published        Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  attempts     LessonAttempt[]
+  assignments  Assignment[]
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+model LessonAttempt {
+  id           String        @id @default(cuid())
+  lessonId     String
+  userId       String
+  assignmentId String?
+  status       AttemptStatus @default(IN_PROGRESS)
+  score        Float         @default(0)
+  maxScore     Float
+  currentStep  Int           @default(0)
+  startedAt    DateTime      @default(now())
+  submittedAt  DateTime?
+  lessonVersion Int
+
+  lesson       Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignment   Assignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  answers      AttemptAnswer[]
+
+  @@index([userId, lessonId])
+  @@index([assignmentId])
+}
+
+model AttemptAnswer {
+  id           String   @id @default(cuid())
+  attemptId    String
+  stepId       String
+  responseJson Json
+  isCorrect    Boolean
+  pointsEarned Float    @default(0)
+  pointsPossible Float  @default(0)
+  triesUsed    Int      @default(1)
+  feedback     String?  @db.Text
+  answeredAt   DateTime @default(now())
+
+  attempt      LessonAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, stepId])
+}
+
+// ---------- Courses ----------
+
+model Course {
+  id           String   @id @default(cuid())
+  instructorId String
+  name         String
+  term         String                  // "Fall 2026"
+  joinCode     String   @unique        // 6 chars, A-Z2-9, no O/0/I/1
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  instructor   User     @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  enrollments  Enrollment[]
+  assignments  Assignment[]
+
+  @@index([instructorId])
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  courseId  String
+  userId    String
+  status    EnrollmentStatus @default(ACTIVE)
+  joinedAt  DateTime         @default(now())
+
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+}
+
+model Assignment {
+  id            String    @id @default(cuid())
+  courseId      String
+  lessonId      String
+  dueAt         DateTime?
+  points        Float     @default(100)
+  allowLateUntil DateTime?
+  maxAttempts   Int       @default(3)
+  createdAt     DateTime  @default(now())
+
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  attempts      LessonAttempt[]
+
+  @@unique([courseId, lessonId])
+}
+
+// ---------- Ops ----------
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model SyncRun {
+  id            String     @id @default(cuid())
+  startedAt     DateTime   @default(now())
+  finishedAt    DateTime?
+  status        SyncStatus @default(RUNNING)
+  seriesAttempted Int      @default(0)
+  seriesUpdated Int        @default(0)
+  observationsWritten Int  @default(0)
+  errorsJson    Json       @default("[]")
+  triggeredBy   String     @default("cron")   // "cron" | "admin:<userId>" | "cli"
+}

@@ -1,0 +1,23 @@
+# The Dockerfile's builder stage does `COPY . .`, and the build context is now
+# the repository root. Everything the image builds for itself, everything git
+# owns, and anything holding real configuration stays out of it.
+.git
+.github
+node_modules
+.next
+out
+build
+dist
+coverage
+test-results
+playwright-report
+blob-report
+.playwright
+# `.env` is a symlink to `.env.local`; neither belongs in an image, which takes
+# its configuration from the environment at run time.
+.env
+.env.local
+.env*.local
+*.tsbuildinfo
+.DS_Store
+*.log

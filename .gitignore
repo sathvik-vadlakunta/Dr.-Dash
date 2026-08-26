@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+# `.env` is a tracked symlink to `.env.local` so the Prisma CLI and Next.js
+# read the one file the setup instructions tell you to create. The target
+# itself is never committed.
+.env.local
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+.DS_Store
+*.log

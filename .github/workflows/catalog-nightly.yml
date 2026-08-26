@@ -1,0 +1,29 @@
+name: Nightly catalog check
+
+on:
+  schedule:
+    # Section 23.7: verify every seeded FRED id still resolves and that its
+    # frequency and units still match what the catalog claims.
+    - cron: "40 11 * * *"
+  workflow_dispatch:
+
+jobs:
+  check-catalog:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://drdash:drdash@localhost:5432/drdash?schema=public
+      SESSION_SECRET: nightly-session-secret-value-long-enough-for-zod
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: cp .env.example .env.local && ln -sfn .env.local .env
+      - run: pnpm check:catalog

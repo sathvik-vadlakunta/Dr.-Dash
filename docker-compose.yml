@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: drdash
+      POSTGRES_PASSWORD: drdash
+      POSTGRES_DB: drdash
+    ports: ["5432:5432"]
+    volumes: ["dd_pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drdash"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://drdash:drdash@db:5432/drdash?schema=public
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SESSION_SECRET: ${SESSION_SECRET}
+      FRED_API_KEY: ${FRED_API_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+      SEED_DEMO_DATA: "true"
+    ports: ["3000:3000"]
+    command: sh -c "pnpm db:deploy && pnpm db:seed && node server.js"
+
+volumes:
+  dd_pgdata:

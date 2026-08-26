@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------------
+   Section 20.1. This block is the only place a colour is written down in the
+   whole codebase. Tailwind maps every one of these to a utility class in
+   tailwind.config.ts; nothing else may contain a hex literal.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --surface:        #FFFFFF;
+  --surface-sunken: #F3F6F8;
+  --surface-raised: #FFFFFF;
+  --ink:            #0B1B2B;
+  --ink-muted:      #56697B;
+  --rule:           #DBE3EA;
+  --rule-strong:    #78889A;
+  --band:           #E4E9ED;   /* recession shading */
+  --accent:         #12507E;
+  --accent-hover:   #0E4066;
+  --accent-ink:     #FFFFFF;
+  --focus:          #0A84FF;
+  --ok:             #1B6B4A;
+  --warn:           #9A5300;
+  --danger:         #A32B2B;
+
+  /* Series palette: Okabe-Ito, chosen because it stays distinguishable
+     under deuteranopia, protanopia, and tritanopia. Do not substitute. */
+  --series-1: #0072B2;
+  --series-2: #D55E00;
+  --series-3: #009E73;
+  --series-4: #CC79A7;
+  --series-5: #E69F00;
+  --series-6: #56B4E9;
+
+  /* Section 20.6 motion. */
+  --ease-system: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur-mid: 180ms;
+  --dur-slow: 240ms;
+
+  /* Dark mode raises line weight (Section 20.1); the chart reads this. */
+  --series-stroke-width: 2;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --surface:        #0C1219;
+  --surface-sunken: #070B10;
+  --surface-raised: #131C26;
+  --ink:            #E6EDF3;
+  --ink-muted:      #91A3B2;
+  --rule:           #1E2A36;
+  --rule-strong:    #526980;
+  --band:           #172230;
+  --accent:         #4F9BD6;
+  --accent-hover:   #6BAFE4;
+  --accent-ink:     #06101A;
+  --focus:          #58A6FF;
+  --ok:             #4CC38A;
+  --warn:           #E8A33D;
+  --danger:         #F07A73;
+
+  --series-stroke-width: 2.25;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 23px;
+  }
+
+  /* Section 20.4: focus is always visible, everywhere, and is never replaced
+     by a colour change alone. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* Section 20.2: no number is ever set in the body face. */
+  .font-mono,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  hr,
+  .rule {
+    border-color: var(--rule);
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+}
+
+@layer components {
+  .eyebrow {
+    font-size: 11px;
+    line-height: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-muted);
+  }
+
+  /* Section 20.3: panel headers echo a statistical table header — an eyebrow
+     with a hairline rule directly beneath. */
+  .panel-header {
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 16px;
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-sunken) 25%,
+      var(--rule) 37%,
+      var(--surface-sunken) 63%
+    );
+    background-size: 400% 100%;
+    animation: dd-shimmer 1400ms ease-in-out infinite;
+  }
+}
+
+/* Section 17.2: the embed route carries no top bar. The bar is rendered by the
+   root layout, which a nested route cannot unmount, so the embed page marks
+   itself and the bar above it is removed here. */
+body:has(.embed-root) [data-app-chrome] {
+  display: none;
+}
+
+@keyframes dd-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* Section 20.6 / 21.1.7: reduced motion collapses everything to opacity. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 100ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity !important;
+    transition-duration: 100ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton {
+    animation: none;
+  }
+}
