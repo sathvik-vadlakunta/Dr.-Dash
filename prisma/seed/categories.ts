@@ -20,6 +20,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
   { sortOrder: 70, slug: "housing", name: "Housing and Construction" },
   { sortOrder: 80, slug: "productivity-costs", name: "Productivity and Costs" },
   { sortOrder: 90, slug: "consumer-business", name: "Consumer and Business Activity" },
+  { sortOrder: 95, slug: "income-distribution", name: "Income and Poverty" },
   { sortOrder: 100, slug: "population-denominators", name: "Population and Denominators" },
   { sortOrder: 110, slug: "dr-dash-constructed", name: "Dr. Dash Constructed Series" },
 ];

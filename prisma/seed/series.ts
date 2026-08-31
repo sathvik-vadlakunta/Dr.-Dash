@@ -616,6 +616,34 @@ const MONEY_RATES: Row[] = [
     sa: "NSA",
   },
   {
+    slug: "AAA",
+    category: "money-rates",
+    title: "Moody's Seasoned Aaa Corporate Bond Yield",
+    shortLabel: "Aaa Corporate Yield",
+    description:
+      "The yield on the highest tier of investment-grade corporate debt. Plotted against the Baa yield, the spread between the two reveals the market's current price of default risk.",
+    units: "Percent",
+    unitsShort: "Percent",
+    mult: 1,
+    freq: "MONTHLY",
+    kind: "RATE_PERCENT",
+    sa: "NSA",
+  },
+  {
+    slug: "TERMCBCCALLNS",
+    category: "money-rates",
+    title: "Commercial Bank Interest Rate on Credit Card Plans, All Accounts",
+    shortLabel: "Credit Card Rate",
+    description:
+      "The average rate banks charge on credit card balances across all accounts. One of the widest spreads over the federal funds rate, showing how expensive short-term consumer borrowing remains even when policy rates are low.",
+    units: "Percent",
+    unitsShort: "Percent",
+    mult: 1,
+    freq: "QUARTERLY",
+    kind: "RATE_PERCENT",
+    sa: "NSA",
+  },
+  {
     slug: "M1SL",
     category: "money-rates",
     title: "M1 Money Stock",
@@ -760,6 +788,25 @@ const GOVERNMENT_FINANCE: Row[] = [
     pop: "B230RC0Q173SBEA",
     agg: "AVG",
   },
+  {
+    slug: "FYFSD",
+    category: "government-finance",
+    title: "Federal Government Budget Surplus or Deficit",
+    shortLabel: "Budget Surplus/Deficit",
+    description:
+      "Annual federal receipts minus outlays. Negative values — the norm in almost every year since the 1960s — are deficits. This is the flow that, when negative, adds to the accumulated debt stock.",
+    units: "Billions of Dollars",
+    unitsShort: "Bil. $",
+    mult: 1e9,
+    freq: "ANNUAL",
+    kind: "LEVEL_CURRENCY",
+    sa: "NSA",
+    nominal: true,
+    defl: "CPIAUCSL",
+    canGrowth: false,
+    notes:
+      "Crosses zero (surpluses existed in the late 1990s), so growth rate has no stable meaning. Express as a share of GDP for fiscal-sustainability comparisons.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -812,6 +859,40 @@ const INTERNATIONAL: Row[] = [
     unitsShort: "Index 2006=100",
     mult: 1,
     freq: "DAILY",
+    kind: "INDEX",
+    sa: "NSA",
+  },
+  {
+    slug: "BOPCA",
+    category: "international",
+    title: "U.S. Balance of Payments: Current Account",
+    shortLabel: "Current Account Balance",
+    description:
+      "The broadest measure of U.S. transactions with the rest of the world: goods, services, primary income, and current transfers combined. A persistent deficit means the U.S. is absorbing more from the rest of the world than it sends.",
+    units: "Billions of Dollars",
+    unitsShort: "Bil. $",
+    mult: 1e9,
+    freq: "QUARTERLY",
+    kind: "LEVEL_CURRENCY",
+    sa: "NSA",
+    nominal: true,
+    defl: "CPIAUCSL",
+    pop: "B230RC0Q173SBEA",
+    canGrowth: false,
+    notes:
+      "Crosses zero in some periods, so growth rate has no stable meaning. Express as a share of GDP for international-competitiveness comparisons.",
+  },
+  {
+    slug: "RBUSBIS",
+    category: "international",
+    title: "Real Broad Effective Exchange Rate for United States",
+    shortLabel: "Real Effective Exch. Rate",
+    description:
+      "The U.S. dollar against a trade-weighted basket of foreign currencies, adjusted for relative price levels using CPI. A rise means U.S. goods are becoming relatively more expensive abroad, which tends to weigh on export competitiveness.",
+    units: "Index 2020=100",
+    unitsShort: "Index 2020=100",
+    mult: 1,
+    freq: "MONTHLY",
     kind: "INDEX",
     sa: "NSA",
   },
@@ -932,6 +1013,34 @@ const PRODUCTIVITY_COSTS: Row[] = [
     kind: "INDEX",
     sa: "SA",
   },
+  {
+    slug: "OUTNFB",
+    category: "productivity-costs",
+    title: "Nonfarm Business Sector: Real Output",
+    shortLabel: "Nonfarm Business Output",
+    description:
+      "Real output of the nonfarm business sector, the numerator of the labor productivity ratio. Divide by hours worked to reconstruct output per hour, or plot alongside compensation to compare what the sector produces with what workers earn.",
+    units: "Index 2017=100",
+    unitsShort: "Index 2017=100",
+    mult: 1,
+    freq: "QUARTERLY",
+    kind: "INDEX",
+    sa: "SA",
+  },
+  {
+    slug: "HOANBS",
+    category: "productivity-costs",
+    title: "Nonfarm Business Sector: Hours of All Persons",
+    shortLabel: "Nonfarm Hours Worked",
+    description:
+      "Total hours worked by all persons in the nonfarm business sector, the denominator of the labor productivity ratio. Together with real output it shows how much of productivity growth comes from working more hours versus producing more per hour.",
+    units: "Index 2017=100",
+    unitsShort: "Index 2017=100",
+    mult: 1,
+    freq: "QUARTERLY",
+    kind: "INDEX",
+    sa: "SA",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -960,6 +1069,20 @@ const CONSUMER_BUSINESS: Row[] = [
     shortLabel: "Capacity Utilization",
     description:
       "The share of industrial capacity actually in use. Sustained high readings have historically preceded price pressure in goods.",
+    units: "Percent of Capacity",
+    unitsShort: "Percent",
+    mult: 1,
+    freq: "MONTHLY",
+    kind: "RATE_PERCENT",
+    sa: "SA",
+  },
+  {
+    slug: "MCUMFN",
+    category: "consumer-business",
+    title: "Capacity Utilization: Manufacturing (SIC)",
+    shortLabel: "Mfg. Capacity Utilization",
+    description:
+      "The share of manufacturing capacity actually in use. Tracked alongside total capacity utilization, it isolates goods-sector pressure. Readings above 80 percent have historically preceded inflation in manufactured goods.",
     units: "Percent of Capacity",
     unitsShort: "Percent",
     mult: 1,
@@ -1043,6 +1166,56 @@ const CONSUMER_BUSINESS: Row[] = [
     kind: "LEVEL_COUNT",
     sa: "SAAR",
     pop: "POPTHM",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Category `income-distribution`
+// ---------------------------------------------------------------------------
+
+const INCOME_DISTRIBUTION: Row[] = [
+  {
+    slug: "MEHOINUSA672N",
+    category: "income-distribution",
+    title: "Real Median Household Income in the United States",
+    shortLabel: "Median Household Income",
+    description:
+      "The income level at which half of U.S. households earn more and half earn less, deflated by the Census Bureau to constant dollars. It captures the middle of the distribution that averages conceal.",
+    units: "2023 Dollars",
+    unitsShort: "2023 $",
+    mult: 1,
+    freq: "ANNUAL",
+    kind: "LEVEL_CURRENCY",
+    sa: "NSA",
+    realAlready: true,
+  },
+  {
+    slug: "PPAACH",
+    category: "income-distribution",
+    title: "Poverty Rate in the United States",
+    shortLabel: "Poverty Rate",
+    description:
+      "The share of the U.S. population with income below the Census Bureau's official poverty threshold, from the Current Population Survey. Published annually.",
+    units: "Percent",
+    unitsShort: "Percent",
+    mult: 1,
+    freq: "ANNUAL",
+    kind: "RATE_PERCENT",
+    sa: "NSA",
+  },
+  {
+    slug: "SIPOVGINIUSA",
+    category: "income-distribution",
+    title: "GINI Coefficient for the United States",
+    shortLabel: "Gini Coefficient",
+    description:
+      "A summary measure of income inequality ranging from 0 (perfect equality) to 1 (one person earns everything). The U.S. Gini has drifted upward since the 1970s.",
+    units: "Gini Coefficient",
+    unitsShort: "Gini",
+    mult: 1,
+    freq: "ANNUAL",
+    kind: "RATIO",
+    sa: "NSA",
   },
 ];
 
@@ -1199,6 +1372,7 @@ const ROWS: Row[] = [
   ...HOUSING,
   ...PRODUCTIVITY_COSTS,
   ...CONSUMER_BUSINESS,
+  ...INCOME_DISTRIBUTION,
   ...POPULATION_DENOMINATORS,
   ...CONSTRUCTED,
 ];
